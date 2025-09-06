@@ -24,3 +24,10 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+target/
+*.class
+*.jar
+*.log
+.DS_Store
+.vscode/
+.idea/

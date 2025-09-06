@@ -61,8 +61,9 @@ public class Field {
         if (value == null) {
             return "NULL";
         }
-        
-        switch (type.toUpperCase()) {
+
+        String baseType = baseType(type);
+        switch (baseType) {
             case "TIMESTAMP":
                 return formatTimestamp(value);
             case "VARCHAR":
@@ -95,40 +96,36 @@ public class Field {
         if (type == null || type.trim().isEmpty()) {
             throw new IllegalArgumentException("字段类型不能为空");
         }
-        
-        String normalizedType = type.trim().toLowerCase();
-        
-        // 数值类型映射
-        if ("d".equals(normalizedType) || "double".equals(normalizedType)) {
-            return "DOUBLE";
-        }
-        if ("f".equals(normalizedType) || "float".equals(normalizedType)) {
-            return "FLOAT";
-        }
-        if ("i".equals(normalizedType) || "int".equals(normalizedType)) {
-            return "INT";
-        }
-        if ("l".equals(normalizedType) || "long".equals(normalizedType)) {
-            return "BIGINT";
-        }
-        
+
+        String raw = type.trim();
+        String lower = raw.toLowerCase();
+
+        // 数值类型映射（大小写/首字母大写均支持）
+        if (lower.equals("d") || lower.equals("double")) return "DOUBLE";
+        if (lower.equals("f") || lower.equals("float")) return "FLOAT";
+        if (lower.equals("i") || lower.equals("int")) return "INT";
+        if (lower.equals("l") || lower.equals("long")) return "BIGINT";
+
         // 时间类型映射
-        if ("t".equals(normalizedType) || "timestamp".equals(normalizedType)) {
-            return "TIMESTAMP";
+        if (lower.equals("t") || lower.equals("timestamp")) return "TIMESTAMP";
+
+        // 字符串类型映射（支持 varchar / varchar(n) / s 简写）
+        if (lower.equals("s") || lower.equals("varchar")) {
+            return "VARCHAR(255)"; // 默认长度 255
         }
-        
-        // 字符串类型映射
-        if ("s".equals(normalizedType) || "varchar".equals(normalizedType)) {
-            return "VARCHAR(255)";  // 默认长度 255
+        if (lower.startsWith("varchar(")) {
+            return raw.toUpperCase(); // 保留长度
         }
-        
+
+        // NCHAR 类似处理（可选）
+        if (lower.equals("nchar")) return "NCHAR(255)";
+        if (lower.startsWith("nchar(")) return raw.toUpperCase();
+
         // 布尔类型映射
-        if ("b".equals(normalizedType) || "bool".equals(normalizedType) || "boolean".equals(normalizedType)) {
-            return "BOOL";
-        }
-        
-        // 其他类型直接转大写
-        return type.toUpperCase();
+        if (lower.equals("b") || lower.equals("bool") || lower.equals("boolean")) return "BOOL";
+
+        // 其他类型直接转大写（如 BINARY、VARCHAR(100) 等）
+        return raw.toUpperCase();
     }
     
     /**
@@ -140,7 +137,8 @@ public class Field {
             return true;  // NULL 值总是有效的
         }
         
-        switch (type.toUpperCase()) {
+        String baseType = baseType(type);
+        switch (baseType) {
             case "TIMESTAMP":
                 return isValidTimestamp(value);
             case "VARCHAR":
@@ -160,6 +158,19 @@ public class Field {
             default:
                 return true;  // 其他类型暂时认为都有效
         }
+    }
+
+    /**
+     * 提取基础类型（去掉长度等修饰），统一为大写
+     */
+    private static String baseType(String type) {
+        if (type == null) return "";
+        String t = type.trim().toUpperCase();
+        int idx = t.indexOf('(');
+        if (idx > 0) {
+            t = t.substring(0, idx);
+        }
+        return t;
     }
     
     /**
@@ -256,3 +267,4 @@ public class Field {
         return String.format("Field{name='%s', type='%s', value=%s}", name, type, value);
     }
 }
+

@@ -1,8 +1,8 @@
 package com.tdengine.toolbox.core;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.tdengine.toolbox.logger.Logger;
 import com.tdengine.toolbox.util.TdEngineException;
 import org.apache.http.HttpEntity;
@@ -143,24 +143,27 @@ public class ConnectionManager {
             post.setHeader("Authorization", authHeader);
             post.setHeader("Content-Type", "application/json");
             
-            JSONObject requestBody = new JSONObject();
-            requestBody.put("sql", sql);
+            JsonObject requestBody = new JsonObject();
+            requestBody.addProperty("sql", sql);
+            String json = new Gson().toJson(requestBody);
             
-            StringEntity entity = new StringEntity(requestBody.toString(), "UTF-8");
+            StringEntity entity = new StringEntity(json, "UTF-8");
             post.setEntity(entity);
             
             HttpResponse response = httpClient.execute(post);
             HttpEntity responseEntity = response.getEntity();
             String responseBody = EntityUtils.toString(responseEntity);
             
-            JSONObject result = JSON.parseObject(responseBody);
-            String status = result.getString("status");
+            JsonObject result = JsonParser.parseString(responseBody).getAsJsonObject();
+            String status = result.has("status") && !result.get("status").isJsonNull() 
+                    ? result.get("status").getAsString() : null;
             
             if ("succ".equals(status)) {
                 logger.debug("REST SQL 执行成功: " + sql);
                 return true;
             } else {
-                String desc = result.getString("desc");
+                String desc = result.has("desc") && !result.get("desc").isJsonNull() 
+                        ? result.get("desc").getAsString() : "";
                 throw new TdEngineException("REST_SQL_ERROR", "REST SQL 执行失败: " + desc);
             }
             

@@ -5,14 +5,38 @@
          http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.tdengine</groupId>
+    <groupId>io.github.lihongxing6</groupId>
     <artifactId>tdengine-toolbox</artifactId>
     <version>1.0.0</version>
     <packaging>jar</packaging>
 
     <name>TDengine Toolbox</name>
     <description>面向对象、轻量、易扩展的 TDengine 工具库，支持自动管理表结构和字段变动</description>
-    <url>https://github.com/taosdata/tdengine-toolbox</url>
+    <url>https://github.com/lihongxing6/tdengine-toolbox</url>
+
+    <!-- 必需：许可证、源码仓库、开发者信息 -->
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <scm>
+        <url>https://github.com/lihongxing6/tdengine-toolbox</url>
+        <connection>scm:git:https://github.com/lihongxing6/tdengine-toolbox.git</connection>
+        <developerConnection>scm:git:git@github.com:lihongxing6/tdengine-toolbox.git</developerConnection>
+        <tag>HEAD</tag>
+    </scm>
+
+    <developers>
+        <developer>
+            <id>lihongxing6</id>
+            <name>TDengine Toolbox</name>
+            <email>devnull@example.com</email>
+        </developer>
+    </developers>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
@@ -20,7 +44,9 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <tdengine.version>3.2.1</tdengine.version>
         <httpclient.version>4.5.14</httpclient.version>
-        <fastjson.version>2.0.23</fastjson.version>
+        <gson.version>2.10.1</gson.version>
+        <gpg.plugin.version>3.1.0</gpg.plugin.version>
+        <nexus.staging.plugin.version>1.6.13</nexus.staging.plugin.version>
         <junit.version>4.13.2</junit.version>
     </properties>
 
@@ -41,9 +67,9 @@
 
         <!-- JSON 处理（用于 REST API） -->
         <dependency>
-            <groupId>com.alibaba</groupId>
-            <artifactId>fastjson</artifactId>
-            <version>${fastjson.version}</version>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>${gson.version}</version>
         </dependency>
 
         <!-- 测试依赖 -->
@@ -54,6 +80,18 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <!-- 目标仓库（OSSRH on s01） -->
+    <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>ossrh</id>
+            <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
+    </distributionManagement>
 
     <build>
         <plugins>
@@ -105,4 +143,43 @@
             </plugin>
         </plugins>
     </build>
+
+    <!-- 发布配置（启用 profile: release 时） -->
+    <profiles>
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <!-- GPG 签名 -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>${gpg.plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- Nexus Staging 自动 close/release -->
+                    <plugin>
+                        <groupId>org.sonatype.plugins</groupId>
+                        <artifactId>nexus-staging-maven-plugin</artifactId>
+                        <version>${nexus.staging.plugin.version}</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <serverId>ossrh</serverId>
+                            <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
+                            <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
