@@ -309,11 +309,12 @@ public class ConnectionManager {
                 if (result.has("code") && !result.get("code").isJsonNull()) { try { code = result.get("code").getAsInt(); } catch (Exception ignore) {} }
                 if (result.has("rows") && !result.get("rows").isJsonNull()) { try { rows = result.get("rows").getAsInt(); } catch (Exception ignore) {} }
 
-                // 解析列
+                // 解析列（避免使用 var 以兼容 JDK8）
                 if (result.has("column_meta") && result.get("column_meta").isJsonArray()) {
-                    for (var col : result.get("column_meta").getAsJsonArray()) {
+                    com.google.gson.JsonArray metaArr = result.get("column_meta").getAsJsonArray();
+                    for (int mi = 0; mi < metaArr.size(); mi++) {
                         try {
-                            var arr = col.getAsJsonArray();
+                            com.google.gson.JsonArray arr = metaArr.get(mi).getAsJsonArray();
                             String name = arr.get(0).getAsString();
                             String type = arr.size() > 1 && !arr.get(1).isJsonNull() ? arr.get(1).getAsString() : null;
                             Integer len = (arr.size() > 2 && !arr.get(2).isJsonNull()) ? arr.get(2).getAsInt() : null;
@@ -325,11 +326,12 @@ public class ConnectionManager {
                 // 解析数据
                 if (result.has("data") && result.get("data").isJsonArray()) {
                     int colCount = columns.size();
-                    for (var rowEl : result.get("data").getAsJsonArray()) {
-                        var rowArr = rowEl.getAsJsonArray();
+                    com.google.gson.JsonArray dataArr = result.get("data").getAsJsonArray();
+                    for (int ri = 0; ri < dataArr.size(); ri++) {
+                        com.google.gson.JsonArray rowArr = dataArr.get(ri).getAsJsonArray();
                         java.util.List<Object> row = new java.util.ArrayList<>();
                         for (int i = 0; i < rowArr.size(); i++) {
-                            var cell = rowArr.get(i);
+                            com.google.gson.JsonElement cell = rowArr.get(i);
                             String colType = (i < colCount && columns.get(i).getType() != null)
                                     ? columns.get(i).getType().toUpperCase() : null;
                             row.add(convertRestCell(cell, colType));
