@@ -1,5 +1,7 @@
 package com.tdengine.toolbox.example;
 
+import com.tdengine.toolbox.core.QueryResult;
+import com.tdengine.toolbox.core.TdEngineClient;
 import com.tdengine.toolbox.core.TdEngineToolbox;
 import com.tdengine.toolbox.ddl.Field;
 import com.tdengine.toolbox.ddl.Table;
@@ -7,6 +9,7 @@ import com.tdengine.toolbox.util.TdEngineException;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * TDengine Toolbox 基础使用示例
@@ -19,19 +22,12 @@ public class BasicExample {
 
     public static void main(String[] args) {
 
-        System.out.println("nihao");
-        List<String> list = new ArrayList<>();
-        list.add("1");
-        list.add("2");
-        list.add("3");
-        list.add("4");
-        System.out.println(list);
         try {
             // 示例1: 使用 REST 连接方式
-            restExample();
+            // restExample();
 
             // 示例2: 使用 JDBC 连接方式
-            // jdbcExample();
+            jdbcExample();
 
             // 示例3: 批量插入示例
             // batchInsertExample();
@@ -52,14 +48,16 @@ public class BasicExample {
         System.out.println("=== REST 连接示例 ===");
 
         // 初始化连接（REST 方式）
-        TdEngineToolbox.init("rest://127.0.0.1:6041/test?user=root&password=taosdata");
+        TdEngineToolbox.init("rest://127.0.0.1:6041/energy?user=root&password=taosdata");
 
         // 创建表对象并添加字段
         Table table = new Table("sensor_data")
                 .addField(new Field("ts", "t", System.currentTimeMillis()))
                 .addField(new Field("temperature", "d", 23.5))
                 .addField(new Field("humidity", "f", 65.2f))
-                .addField(new Field("location", "s", "Beijing"));
+                .addField(new Field("location", "s", "Beijing"))
+                .addField(new Field("weather", "d", 1000.1))
+                .addField(new Field("weath", "F", 1000.1111111));
 
         // 插入数据（自动建表和修复字段）
         TdEngineToolbox.insert(table);
@@ -74,9 +72,12 @@ public class BasicExample {
         System.out.println("=== JDBC 连接示例 ===");
 
         // 初始化连接（JDBC 方式）
-        TdEngineToolbox.init("jdbc:TAOS://127.0.0.1:6030/test?user=root&password=taosdata",
-                "root", "taosdata", false);
-
+        TdEngineToolbox.init("jdbc:TAOS://127.0.0.1:6030/energy?user=root&password=taosdata", "root", "taosdata",
+                false);
+        TdEngineClient c1 = TdEngineClient.jdbc("jdbc:TAOS://127.0.0.1:6030/information_schema?user=root&password=taosdata","root","taosdata");
+        QueryResult a = c1.query("select db_name,table_name,col_name, col_type,CONCAT(col_name,'_',col_type) FROM information_schema.ins_columns WHERE db_name='energy' AND table_name='weather_station'");
+        List<Map<String, Object>> mapList = a.toMapList();
+        System.out.println(mapList);
         // 创建更复杂的表
         Table weatherTable = new Table("weather_station")
                 .addField("ts", "timestamp", System.currentTimeMillis())
@@ -84,8 +85,8 @@ public class BasicExample {
                 .addField("temperature", "d", -5.5)
                 .addField("pressure", "f", 1013.25f)
                 .addField("wind_speed", "f", 12.5f)
-                .addField("wind_direction", "i", 270)
-                .addField("humidity", "i", 85)
+                .addField("wind_direction", "i", 270.01)
+                .addField("humidity", "f", 85.1234)
                 .addField("visibility", "d", 10.2)
                 .addField("weather_desc", "varchar", "Light Snow");
 

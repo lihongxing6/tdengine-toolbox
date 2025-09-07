@@ -101,9 +101,9 @@ public class Table {
         }
         
         // 验证字段值的有效性
-        if (!field.isValidValue()) {
-            throw new IllegalArgumentException("字段值无效: " + field);
-        }
+        // if (!field.isValidValue()) {
+        //     throw new IllegalArgumentException("字段值无效: " + field);
+        // }
         
         fields.add(field);
         return this;
@@ -152,6 +152,29 @@ public class Table {
         sql.append(")");
         return sql.toString();
     }
+
+    /**
+     * 生成建表 SQL（允许传入默认数据库前缀，不修改表对象本身）。
+     */
+    public String toCreateSqlWithDb(String defaultDatabase) {
+        if (fields.isEmpty()) {
+            throw new IllegalStateException("至少需要一个字段才能生成建表语句");
+        }
+
+        StringBuilder sql = new StringBuilder();
+        sql.append("CREATE TABLE IF NOT EXISTS ").append(getQualifiedName(defaultDatabase)).append(" (");
+
+        for (int i = 0; i < fields.size(); i++) {
+            Field field = fields.get(i);
+            if (i > 0) {
+                sql.append(", ");
+            }
+            sql.append(field.getName()).append(" ").append(field.getType());
+        }
+
+        sql.append(")");
+        return sql.toString();
+    }
     
     /**
      * 生成插入 SQL 语句
@@ -191,7 +214,35 @@ public class Table {
         
         return sqls;
     }
-    
+
+    /**
+     * 生成单表段（用于批量插入时拼接在同一个 INSERT INTO 语句中）
+     * 形如："db.table (col1, col2) VALUES (v1, v2)"
+     */
+    public String toInsertSegment() {
+        if (fields.isEmpty()) {
+            return "";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(getFullName()).append(" (");
+
+        for (int i = 0; i < fields.size(); i++) {
+            if (i > 0) sb.append(", ");
+            sb.append(fields.get(i).getName());
+        }
+
+        sb.append(") VALUES (");
+
+        for (int i = 0; i < fields.size(); i++) {
+            if (i > 0) sb.append(", ");
+            sb.append(fields.get(i).formatValue());
+        }
+
+        sb.append(")");
+        return sb.toString();
+    }
+
     /**
      * 生成单条插入语句
      * @return 插入 SQL 语句
@@ -199,6 +250,60 @@ public class Table {
     public String toInsertSql() {
         List<String> sqls = toInsertSqls();
         return sqls.isEmpty() ? "" : sqls.get(0);
+    }
+
+    /**
+     * 获取带默认库前缀的完整表名。
+     * 若本表已设置 database 则优先生效；否则使用 defaultDatabase；两者都为空则仅表名。
+     */
+    public String getQualifiedName(String defaultDatabase) {
+        if (this.database != null && !this.database.trim().isEmpty()) {
+            return this.database.trim() + "." + name;
+        }
+        if (defaultDatabase != null && !defaultDatabase.trim().isEmpty()) {
+            return defaultDatabase.trim() + "." + name;
+        }
+        return name;
+    }
+
+    /**
+     * 生成单条插入语句，允许传入默认数据库前缀（不修改表对象本身）。
+     */
+    public String toInsertSqlWithDb(String defaultDatabase) {
+        if (fields.isEmpty()) return "";
+        StringBuilder sql = new StringBuilder();
+        sql.append("INSERT INTO ").append(getQualifiedName(defaultDatabase)).append(" (");
+        for (int i = 0; i < fields.size(); i++) {
+            if (i > 0) sql.append(", ");
+            sql.append(fields.get(i).getName());
+        }
+        sql.append(") VALUES (");
+        for (int i = 0; i < fields.size(); i++) {
+            if (i > 0) sql.append(", ");
+            sql.append(fields.get(i).formatValue());
+        }
+        sql.append(")");
+        return sql.toString();
+    }
+
+    /**
+     * 生成单表段（用于批量插入时拼接在同一个 INSERT 语句中），允许传入默认数据库前缀。
+     */
+    public String toInsertSegmentWithDb(String defaultDatabase) {
+        if (fields.isEmpty()) return "";
+        StringBuilder sb = new StringBuilder();
+        sb.append(getQualifiedName(defaultDatabase)).append(" (");
+        for (int i = 0; i < fields.size(); i++) {
+            if (i > 0) sb.append(", ");
+            sb.append(fields.get(i).getName());
+        }
+        sb.append(") VALUES (");
+        for (int i = 0; i < fields.size(); i++) {
+            if (i > 0) sb.append(", ");
+            sb.append(fields.get(i).formatValue());
+        }
+        sb.append(")");
+        return sb.toString();
     }
     
     /**
